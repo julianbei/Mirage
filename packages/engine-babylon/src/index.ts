@@ -4,3 +4,4 @@ export * as Cameras from "./camera/topDownCamera";
 export * as FollowCam from "./camera/followUnitCamera";
 export * from "./ui/menu";
 export * from "./ui/hud";
+export * from "./input/inputSystem";

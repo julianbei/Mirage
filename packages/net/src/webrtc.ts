@@ -15,6 +15,14 @@ export class Peer {
     this.unreliable.onmessage = e => this.onUnreliableMessage?.(new Uint8Array(e.data));
   }
 
-  sendReliable(u8: Uint8Array) { this.reliable.send(u8); }
-  sendUnreliable(u8: Uint8Array) { this.unreliable.send(u8); }
+  sendReliable(u8: Uint8Array) { 
+    if (this.reliable.readyState === 'open') {
+      this.reliable.send(u8 as any); 
+    }
+  }
+  sendUnreliable(u8: Uint8Array) { 
+    if (this.unreliable.readyState === 'open') {
+      this.unreliable.send(u8 as any); 
+    }
+  }
 }
