@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["packages/core/src/*"],
+      "@engine-babylon/*": ["packages/engine-babylon/src/*"],
+      "@sync/*": ["packages/sync/src/*"],
+      "@net/*": ["packages/net/src/*"],
+      "@io/*": ["packages/io/src/*"]
+    }
+  }
+}
