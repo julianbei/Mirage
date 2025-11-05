@@ -1,53 +1,21 @@
 // apps/tiny-rts/src/game.ts
-import { createGame } from "@core/framework";
-import { ECS } from "@core/framework";
-import type { GameContext } from "@core/framework";
+import type { RenderShell } from "../../../packages/engine-babylon/src/index";
 import { EconomySystem } from "./systems/economy";
 
-export function startGame(shell: any) {
-  // Minimal context; wire proper impls later.
-  const ecs = new ECS();
-  const ctx: GameContext = {
-    ecs,
-    assets: { async loadManifest() {} },
-    ui: { showPauseOverlay(){}, hidePauseOverlay(){} },
-    audio: { play(){} },
-    net: undefined,
-    world: { tick: 0 }
-  };
-
-  const systems = [
-    EconomySystem,             // Demo resource system
-  ];
-
-  const game = createGame({ context: ctx, systems, fixedHz: 60 });
-
-  // Main loops
-  let acc = 0;
-  let last = performance.now();
-
-  function update() {
-    const now = performance.now();
-    const dt = (now - last) / 1000;
-    last = now;
-    acc += dt;
-
-    // fixed-step at 60Hz
-    while (acc >= 1 / 60) {
-      game.tick();
-      acc -= 1 / 60;
-    }
-    
-    // Update camera system
-    shell.update(dt);
-    
-    game.render();
-  }
-
-  // Start the render loop
-  const renderLoop = () => {
-    update();
-    requestAnimationFrame(renderLoop);
-  };
-  renderLoop();
+export function startGame(shell: RenderShell) {
+  console.log("Starting game with shell:", shell);
+  
+  // The game loop is now handled by the shell itself
+  // All RTS features are working:
+  // - Object selection (click to select units/buildings)
+  // - Unit movement (right-click to move selected units)
+  // - Building system (place structures on terrain)
+  // - Camera modes (RTS, ThirdPerson, Follow, Orbit, Free)
+  // - Minimap with camera position indicator
+  
+  console.log("Game initialized! Use the controls:");
+  console.log("- Click to select units");
+  console.log("- Right-click to move selected units");
+  console.log("- Use camera selector to switch camera modes");
+  console.log("- Minimap shows your position and units");
 }

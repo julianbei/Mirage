@@ -1,40 +1,50 @@
 // packages/engine-babylon/src/camera/thirdPersonCamera.ts
-import { FreeCamera, Vector3, Scene, Ray, PickingInfo } from "babylonjs";
+
+import { Scene, FreeCamera, Vector3, Mesh, MeshBuilder } from "babylonjs";
 import type { CameraController } from "./cameraManager";
+import { InputController } from "../input/inputController";
 
 export class ThirdPersonCameraController implements CameraController {
-  id = "ThirdPerson";
-  private camera: FreeCamera | null = null;
-  private keys = new Set<string>();
-  private isActive = false;
-  private mousePos = { x: 0, y: 0 };
-  private isMouseDown = false;
+  public id = "thirdPerson";
+  public camera!: FreeCamera;
+  private scene!: Scene;
+  private inputController: InputController;
+  private canvas!: HTMLCanvasElement;
+  private character!: Mesh;
 
-  // Camera settings
+  // Camera settings - smooth interpolated camera
   private distance = 10;
   private height = 3;
   private targetHeight = 1.5;
   private followSpeed = 5;
-  private rotationSpeed = 0.005;
   private mouseSensitivity = 0.001;
   
   // Current rotation angles
   private pitch = 0; // up/down
   private yaw = 0;   // left/right
   
-  // Target position (what we're following)
-  private targetPosition = Vector3.Zero();
+  // Character movement
+  private characterPosition = Vector3.Zero();
+  private characterYaw = 0; // Character's facing direction
+  private moveSpeed = 10;
+  private turnSpeed = 3;
 
-  constructor() {
-    this.setupInputHandlers();
+  // Mouse controls
+  private isMouseLocked = false;
+
+  constructor(inputController: InputController) {
+    this.inputController = inputController;
   }
 
-  activate(scene: Scene) {
-    if (this.camera) {
-      this.camera.dispose();
-    }
+  activate(scene: Scene): void {
+    this.scene = scene;
+    this.canvas = scene.getEngine().getRenderingCanvas()!;
 
-    // Create third-person camera
+    // Create character representation (simple box for now)
+    this.character = MeshBuilder.CreateBox("character", { size: 2 }, scene);
+    this.character.position = this.characterPosition.clone();
+
+    // Create third person camera positioned behind character
     this.camera = new FreeCamera(
       "thirdPersonCamera",
       new Vector3(0, this.height, -this.distance),
@@ -43,23 +53,117 @@ export class ThirdPersonCameraController implements CameraController {
 
     // Initial camera setup
     this.camera.setTarget(Vector3.Zero());
-    this.camera.attachControl(scene.getEngine().getRenderingCanvas(), false);
-    scene.activeCamera = this.camera;
 
-    this.isActive = true;
+    // Set input profile
+    this.inputController.setProfile("thirdPerson");
+
+    // Setup mouse look
+    this.setupMouseLook();
+
+    console.log("Third Person Camera activated with smooth following");
   }
 
-  deactivate() {
-    this.isActive = false;
-    if (this.camera) {
-      this.camera.detachControl();
+  deactivate(): void {
+    if (this.character) {
+      this.character.dispose();
+    }
+    if (this.isMouseLocked) {
+      document.exitPointerLock();
+    }
+    console.log("Third Person Camera deactivated");
+  }
+
+  private setupMouseLook(): void {
+    this.canvas.addEventListener("click", () => {
+      if (!this.isMouseLocked) {
+        this.canvas.requestPointerLock();
+      }
+    });
+
+    document.addEventListener("pointerlockchange", () => {
+      this.isMouseLocked = document.pointerLockElement === this.canvas;
+    });
+
+    document.addEventListener("mousemove", (event) => {
+      if (!this.isMouseLocked) return;
+
+      const deltaX = event.movementX || 0;
+      const deltaY = event.movementY || 0;
+
+      // Update rotation angles
+      this.yaw -= deltaX * this.mouseSensitivity;
+      this.pitch -= deltaY * this.mouseSensitivity;
+
+      // Clamp pitch to prevent flipping
+      this.pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.pitch));
+    });
+
+    // Mouse wheel for zoom
+    this.canvas.addEventListener("wheel", (e) => {
+      const delta = e.deltaY > 0 ? 1 : -1;
+      this.distance = Math.max(5, Math.min(25, this.distance + delta));
+      e.preventDefault();
+    });
+  }
+
+  update(deltaTime: number): void {
+    if (!this.camera || !this.character) return;
+
+    this.inputController.update();
+
+    const moveSpeedDelta = this.moveSpeed * deltaTime;
+    const turnSpeedDelta = this.turnSpeed * deltaTime;
+
+    // Get input axes
+    const forwardAxis = this.inputController.getAxisValue("moveForward", "moveBackward");
+    const strafeAxis = this.inputController.getAxisValue("strafeRight", "strafeLeft");
+    const turnAxis = this.inputController.getAxisValue("turnRight", "turnLeft");
+
+    // Character turning with A/D
+    if (turnAxis !== 0) {
+      this.characterYaw += turnAxis * turnSpeedDelta;
+    }
+
+    // Character movement
+    let hasMoved = false;
+    if (forwardAxis !== 0 || strafeAxis !== 0) {
+      // Calculate movement direction based on character's facing
+      const forward = new Vector3(
+        Math.sin(this.characterYaw),
+        0,
+        Math.cos(this.characterYaw)
+      );
+      
+      const right = new Vector3(
+        Math.cos(this.characterYaw),
+        0,
+        -Math.sin(this.characterYaw)
+      );
+
+      const movement = forward.scale(forwardAxis * moveSpeedDelta)
+                             .add(right.scale(strafeAxis * moveSpeedDelta));
+
+      this.characterPosition.addInPlace(movement);
+      hasMoved = true;
+    }
+
+    // Update character mesh position and rotation
+    this.character.position = this.characterPosition.clone();
+    this.character.rotation.y = this.characterYaw;
+
+    // Update smooth camera to follow character
+    this.updateSmoothCamera(deltaTime);
+
+    // Handle mouse unlock
+    if (this.inputController.wasActionPressed("menu")) {
+      if (this.isMouseLocked) {
+        document.exitPointerLock();
+      }
     }
   }
 
-  update(dt: number) {
-    if (!this.camera || !this.isActive) return;
-
-    // Calculate desired camera position based on target and angles
+  private updateSmoothCamera(deltaTime: number): void {
+    // Calculate desired camera position based on character and mouse rotation
     const offset = new Vector3(
       Math.sin(this.yaw) * this.distance,
       this.height,
@@ -69,107 +173,24 @@ export class ThirdPersonCameraController implements CameraController {
     // Adjust height based on pitch
     offset.y += Math.sin(this.pitch) * this.distance * 0.5;
 
-    const desiredPosition = this.targetPosition.add(offset);
+    const desiredPosition = this.characterPosition.add(offset);
     
-    // Smoothly move camera to desired position
+    // Smoothly interpolate camera to desired position - this creates the smooth "shaking" effect
     this.camera.position = Vector3.Lerp(
       this.camera.position,
       desiredPosition,
-      this.followSpeed * dt
+      this.followSpeed * deltaTime
     );
 
-    // Always look at target
-    const lookTarget = this.targetPosition.add(new Vector3(0, this.targetHeight, 0));
+    // Always look at character (with target height offset)
+    const lookTarget = this.characterPosition.add(new Vector3(0, this.targetHeight, 0));
     this.camera.setTarget(lookTarget);
-
-    // Handle target movement with keyboard
-    let targetMoved = false;
-    const moveSpeed = 10;
-
-    if (this.keys.has("KeyW")) {
-      this.targetPosition.z += moveSpeed * dt;
-      targetMoved = true;
-    }
-    if (this.keys.has("KeyS")) {
-      this.targetPosition.z -= moveSpeed * dt;
-      targetMoved = true;
-    }
-    if (this.keys.has("KeyA")) {
-      this.targetPosition.x -= moveSpeed * dt;
-      targetMoved = true;
-    }
-    if (this.keys.has("KeyD")) {
-      this.targetPosition.x += moveSpeed * dt;
-      targetMoved = true;
-    }
   }
 
-  private setupInputHandlers() {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!this.isActive) return;
-      this.keys.add(e.code);
-    };
-
-    const onKeyUp = (e: KeyboardEvent) => {
-      this.keys.delete(e.code);
-    };
-
-    const onMouseDown = (e: MouseEvent) => {
-      if (!this.isActive) return;
-      if (e.button === 0) { // Left mouse button
-        this.isMouseDown = true;
-        this.mousePos.x = e.clientX;
-        this.mousePos.y = e.clientY;
-      }
-    };
-
-    const onMouseUp = (e: MouseEvent) => {
-      if (e.button === 0) {
-        this.isMouseDown = false;
-      }
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!this.isActive || !this.isMouseDown) return;
-
-      const deltaX = e.clientX - this.mousePos.x;
-      const deltaY = e.clientY - this.mousePos.y;
-
-      // Update rotation angles
-      this.yaw -= deltaX * this.mouseSensitivity;
-      this.pitch -= deltaY * this.mouseSensitivity;
-
-      // Clamp pitch to prevent flipping
-      this.pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.pitch));
-
-      this.mousePos.x = e.clientX;
-      this.mousePos.y = e.clientY;
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      if (!this.isActive) return;
-      const delta = e.deltaY > 0 ? 1 : -1;
-      this.distance = Math.max(5, Math.min(25, this.distance + delta));
-      e.preventDefault();
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    window.addEventListener("mousedown", onMouseDown);
-    window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("wheel", onWheel, { passive: false });
-  }
-
-  setTarget(position: Vector3) {
-    this.targetPosition = position.clone();
-  }
-
-  dispose() {
+  dispose(): void {
     this.deactivate();
     if (this.camera) {
       this.camera.dispose();
-      this.camera = null;
     }
   }
 }

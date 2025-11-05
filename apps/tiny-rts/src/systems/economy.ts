@@ -1,5 +1,4 @@
 // apps/tiny-rts/src/systems/economy.ts
-import type { GameSystem, GameContext } from "@core/framework";
 
 interface Resources {
   gold: number;
@@ -8,17 +7,19 @@ interface Resources {
 }
 
 let resources: Resources = { gold: 100, wood: 50, food: 25 };
+let tickCounter = 0;
 
 /** Demo resource system mimicking an RTS income tick. */
-export const EconomySystem: GameSystem = {
+export const EconomySystem = {
   id: "Economy.ResourceSystem",
-  onInit(ctx: GameContext) {
+  onInit() {
     console.log("Economy init - Starting resources:", resources);
     updateResourceDisplay();
   },
-  onTick(ctx: GameContext) {
+  onTick() {
     // Every 60 ticks (1 second) grant resources
-    if (ctx.world.tick % 60 === 0) {
+    tickCounter++;
+    if (tickCounter % 60 === 0) {
       resources.gold += 10;
       resources.wood += 5;
       resources.food += 3;

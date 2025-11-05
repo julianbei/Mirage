@@ -1,12 +1,11 @@
 // packages/engine-babylon/src/camera/cameraManager.ts
 import type { Scene } from "babylonjs";
+import type { CameraController as BaseCameraController } from "../types/cameraController";
 
-export interface CameraController {
+export interface CameraController extends BaseCameraController {
   id: string;
   activate(scene: Scene): void;
   deactivate(): void;
-  update(dt: number): void;
-  dispose(): void;
 }
 
 export class CameraManager {
@@ -37,6 +36,9 @@ export class CameraManager {
     // Activate new controller
     controller.activate(this.scene);
     this.activeController = controller;
+    
+    // Set as scene's active camera
+    this.scene.activeCamera = controller.camera;
     
     console.log(`Switched to camera: ${controllerId}`);
   }

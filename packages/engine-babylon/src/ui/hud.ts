@@ -72,37 +72,132 @@ export class HUD {
         pointer-events: auto;
       ">
         <h3 style="margin: 0 0 10px 0; color: #ffd700;">Camera Controls</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
           <button onclick="window.switchCamera('RTS')" style="
             background: #4CAF50;
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 6px 8px;
             border-radius: 4px;
             cursor: pointer;
             font-family: inherit;
-          ">RTS Camera</button>
+            font-size: 11px;
+          ">🎮 RTS</button>
           <button onclick="window.switchCamera('ThirdPerson')" style="
             background: #2196F3;
             color: white;
             border: none;
-            padding: 8px 12px;
+            padding: 6px 8px;
             border-radius: 4px;
             cursor: pointer;
             font-family: inherit;
-          ">Third Person</button>
+            font-size: 11px;
+          ">👤 3rd Person</button>
+          <button onclick="window.switchCamera('Follow')" style="
+            background: #FF9800;
+            color: white;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+          ">📷 Follow</button>
+          <button onclick="window.switchCamera('Orbit')" style="
+            background: #9C27B0;
+            color: white;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+          ">🔄 Orbit</button>
+          <button onclick="window.switchCamera('Free')" style="
+            background: #F44336;
+            color: white;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+          ">🕊️ Free</button>
         </div>
-        <div style="margin-top: 10px; font-size: 12px; color: #ccc;">
-          <div><strong>RTS Controls:</strong></div>
-          <div>WASD: Move</div>
-          <div>Q/E: Rotate</div>
-          <div>R/F: Zoom</div>
-          <div>Mouse Wheel: Zoom</div>
+        <div style="margin-top: 10px; font-size: 11px; color: #ccc;">
+          <div><strong>Camera Controls:</strong></div>
+          <div>RTS: WASD move, Q/E rotate, R/F zoom</div>
+          <div>3rd Person: WASD move, mouse look</div>
+          <div>Follow: Tracks selected unit</div>
+          <div>Orbit: WASD move center, mouse orbit</div>
+          <div>Free: WASD+QE fly, mouse look</div>
           <br>
-          <div><strong>Third Person:</strong></div>
-          <div>WASD: Move target</div>
-          <div>Mouse: Look around</div>
-          <div>Wheel: Distance</div>
+          <div><strong>Unit Controls:</strong></div>
+          <div>Left Click: Select</div>
+          <div>Right Click: Move</div>
+          <div>Ctrl+Click: Multi-select</div>
+        </div>
+      </div>
+
+      <div style="
+        position: absolute;
+        top: 20px;
+        right: 260px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        border: 2px solid #333;
+        pointer-events: auto;
+      ">
+        <h3 style="margin: 0 0 10px 0; color: #ffd700;">Building Panel</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button onclick="window.startBuilding('house')" style="
+            background: #8B4513;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+          ">🏠 House<br><small>50W 20S</small></button>
+          <button onclick="window.startBuilding('barracks')" style="
+            background: #654321;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+          ">🏰 Barracks<br><small>100W 50S</small></button>
+          <button onclick="window.startBuilding('farm')" style="
+            background: #228B22;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+          ">🌾 Farm<br><small>30W 10S</small></button>
+          <button onclick="window.startBuilding('tower')" style="
+            background: #696969;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+          ">🗼 Tower<br><small>75W 100S</small></button>
+        </div>
+        <div style="margin-top: 10px; font-size: 11px; color: #ccc;">
+          <div><strong>Building:</strong></div>
+          <div>Click button → Place on ground</div>
+          <div>ESC: Cancel placement</div>
+          <div>Grid snaps automatically</div>
         </div>
       </div>
 
@@ -122,9 +217,13 @@ export class HUD {
         <div style="font-size: 14px; line-height: 1.4;">
           <div>✅ Framework: Active</div>
           <div>✅ Rendering: Babylon.js</div>
-          <div>✅ Camera System: Multi-mode</div>
+          <div>✅ Camera System: 5 modes</div>
+          <div>✅ Unit Selection: Working</div>
+          <div>✅ Unit Movement: Working</div>
+          <div>✅ Building System: Working</div>
+          <div>✅ Minimap: Interactive</div>
           <div>✅ Resource Economy: Running</div>
-          <div>🎮 Ready for gameplay features!</div>
+          <div>🎮 Ready for gameplay!</div>
         </div>
       </div>
     `;
@@ -132,6 +231,11 @@ export class HUD {
     // Setup global camera switching function
     (window as any).switchCamera = (cameraId: string) => {
       this.renderShell.switchCamera(cameraId);
+    };
+
+    // Setup global building functions
+    (window as any).startBuilding = (buildingType: string) => {
+      this.renderShell.getBuildingManager().enterPlacementMode(buildingType);
     };
   }
 
